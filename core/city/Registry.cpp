@@ -37,8 +37,10 @@ bool readTeamJson(const std::filesystem::path& folder, TeamInfo& team, std::stri
     }
 }
 
-Registry Registry::load(const std::filesystem::path& root, const Layout& layout) {
+Registry Registry::load(const std::filesystem::path& root, const Layout& layout,
+                        const std::vector<std::string>& focus) {
     Registry registry;
+    const std::set<std::string> focused(focus.begin(), focus.end());
     const Json j = Json::parseFile(root / "city" / "registry.json");
     const std::regex teamPattern("team[0-9]{2}");
     std::set<std::string> usedPlots;
@@ -77,7 +79,9 @@ Registry Registry::load(const std::filesystem::path& root, const Layout& layout)
         }
         std::string error;
         if (!readTeamJson(root / "teams" / team.id, team, error)) {
-            log::warn("registry", team.id + ": " + error + " (the plot stays empty)");
+            // The plot stays empty either way; only say so to the people it concerns.
+            if (focused.empty() || focused.count(team.id))
+                log::warn("registry", team.id + ": " + error + " (the plot stays empty)");
             team.folder.clear();
         }
         registry.teams_.push_back(std::move(team));
