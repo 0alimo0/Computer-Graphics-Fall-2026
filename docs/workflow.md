@@ -22,8 +22,9 @@ step by step in the [README](../README.md#requirements).
 
 ## Once per team
 
-1. **Tell the staff your GitHub logins.** They add them to your team in
-   `city/registry.json`. CI uses that list to know which folder is yours.
+1. **Make sure your team is in `city/registry.json`.** The staff put it there
+   with your topic. You do not send them your GitHub logins: you write them
+   in your own `team.json` (step 4).
 2. **Fork.** One member presses **Fork** on the course repository. Add the
    other member as a collaborator of the fork (*Settings → Collaborators*),
    so you both push to the same fork.
@@ -44,6 +45,12 @@ step by step in the [README](../README.md#requirements).
    git commit -m "team07: start from the template"
    git push -u origin team07
    ```
+
+   Before you push, open `teams/team07/team.json` and write each member's
+   GitHub login in `"github"`. CI uses these logins to know which folder is
+   yours. The staff check that they are yours when they review your first
+   pull request; from then on only the logins already merged count, so
+   nobody else can change your folder.
 
 Work on a branch named after your team, not on `main`. Your fork's `main`
 then stays a clean copy of the course repository, which makes updating easy.
@@ -127,7 +134,7 @@ The graders look at the commit named in `COMMIT.txt`.
 
 | Problem | Fix |
 |---|---|
-| `boundary` says your login is not in the registry | Ask a TA to add it to your team in `city/registry.json`. |
+| `boundary` says your login is not listed for any team | Write your GitHub login in `"members"` → `"github"` of `teams/team07/team.json` and push. This works for the first pull request of a team that is in `city/registry.json`. After that, only a teammate already in the merged `team.json` can add a login; otherwise ask a TA. |
 | `boundary` says the pull request changes other files | `git diff --name-only upstream/main...HEAD` lists them. Restore each one with `git checkout upstream/main -- <file>` and commit. |
 | `check` is red on GitHub but green on your computer | Read the log: CI builds on Linux, so look for an upper/lower-case file name (`Brick.png` vs `brick.png`) or a Windows-only header. |
 | You committed a large file by mistake | Delete it and commit. It stays in the history, so tell a TA before you open the pull request. |

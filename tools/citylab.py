@@ -337,18 +337,62 @@ def annotate(path, message):
         print(f"::error file={path}::{message}")
 
 
+def git_text(*args):
+    """The output of a git command run quietly in the repository, or None if it fails."""
+    try:
+        result = subprocess.run(["git", *args], cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                universal_newlines=True, errors="replace")
+    except OSError:
+        return None
+    return result.stdout if result.returncode == 0 else None
+
+
+def logins_in(text):
+    """The GitHub logins a team.json lists under "members" (lower case); none if it is not valid."""
+    try:
+        members = json.loads(text).get("members")
+    except (ValueError, AttributeError):
+        return set()
+    logins = set()
+    for member in members if isinstance(members, list) else []:
+        value = member.get("github") if isinstance(member, dict) else None
+        if isinstance(value, str):
+            logins.add(value.strip().rstrip("/").rsplit("/", 1)[-1].lstrip("@").lower())
+    return logins - {""}
+
+
 def cmd_boundary(args):
     registry = load_json(ROOT / "city" / "registry.json")
     login = (args.author or "").lower()
     staff = {s.lower() for s in registry.get("staff", [])}
+    # Who owns a team folder: the logins the staff wrote in city/registry.json, and the logins listed in that
+    # folder's team.json on the base branch (already merged, so only the team could have written them).
     owned = {t["id"] for t in registry.get("teams", []) if login in {g.lower() for g in t.get("github", [])}}
+    on_base = {p.rsplit("/", 1)[-1] for p in (git_text("ls-tree", "--name-only", args.base, "teams/") or "").split()}
+    for team in sorted(on_base):
+        if TEAM_ID.match(team) and login in logins_in(git_text("show", f"{args.base}:teams/{team}/team.json") or ""):
+            owned.add(team)
+    # The first pull request of a registered team, whose folder is not in the course repository yet, may bring
+    # its own logins: the staff check that they are the team's when they review it. One person, one team.
+    claimed = set()
+    if login and not owned:
+        for team in sorted({t["id"] for t in registry.get("teams", [])} - on_base):
+            file = TEAMS / team / "team.json"
+            if file.is_file() and login in logins_in(file.read_text(encoding="utf-8", errors="replace")):
+                claimed.add(team)
+    owned |= claimed
     diff = run(["git", "diff", "--name-only", f"{args.base}...HEAD"], capture=True).stdout.split()
     say(f"\nboundary: {len(diff)} changed files, author {args.author or '?'}")
     if login in staff:
         ok("staff may change any file")
         return 0
+    if claimed:
+        info(f"first pull request of {', '.join(sorted(claimed))}: the login {args.author} comes from team.json; "
+             "the staff check that it is yours when they review")
     if not owned:
-        bad(f"{args.author} is not in city/registry.json; ask a TA to add your GitHub login to your team")
+        bad(f"{args.author} is not listed for any team. Write your GitHub login in \"members\" > \"github\" of "
+            "teams/teamNN/team.json (your team must be in city/registry.json, and its folder must not be in the "
+            "course repository yet), or ask a TA to add it to city/registry.json")
         return 1
     touched = set()
     outside = []
