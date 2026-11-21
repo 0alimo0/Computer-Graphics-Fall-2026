@@ -24,7 +24,12 @@ struct TeamInfo {
 // city/registry.json (staff) joined with every teams/*/team.json (teams).
 class Registry {
 public:
-    static Registry load(const std::filesystem::path& root, const Layout& layout);
+    // `focus` lists the teams this run is about (--team, --check). A registered
+    // team whose folder is missing or invalid is reported only if it is in
+    // `focus`, or if `focus` is empty (the whole city): a student running
+    // team07 does not need a warning for every team that has not started.
+    static Registry load(const std::filesystem::path& root, const Layout& layout,
+                         const std::vector<std::string>& focus = {});
 
     const std::deque<TeamInfo>& teams() const { return teams_; }  // deque: pointers stay valid
     const TeamInfo* findTeam(const std::string& id) const;

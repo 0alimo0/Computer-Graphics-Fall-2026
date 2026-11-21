@@ -71,13 +71,14 @@ def board(title: str, subtitle: str, accent: tuple) -> Image.Image:
     return img
 
 
-def team_title(team: dict) -> str:
+def team_title(team: dict, fallback: str = "") -> str:
+    """The team's own title, else the topic's (a registered team may not have its folder yet)."""
     path = ROOT / "teams" / team["id"] / "team.json"
     if path.exists():
         title = load_json(path).get("title", "").strip()
         if title:
             return title
-    return team["id"]
+    return fallback or team["id"]
 
 
 def signs() -> dict:
@@ -100,7 +101,8 @@ def signs() -> dict:
         accent = rgb(districts[p["district"]]["color"]) if p["district"] in districts else NEUTRAL
         team, place = by_plot.get(p["id"]), places.get(p["place"])
         if team:
-            out[f"plot-{p['id']}"] = board(team_title(team), f"{p['id']}  ·  {team['id']}", accent)
+            out[f"plot-{p['id']}"] = board(team_title(team, place["title"] if place else ""),
+                                           f"{p['id']}  ·  {team['id']}", accent)
         elif place:
             out[f"plot-{p['id']}"] = board(place["title"], f"{p['id']}  ·  {place['title_en']}  ·  coming soon", accent)
         else:

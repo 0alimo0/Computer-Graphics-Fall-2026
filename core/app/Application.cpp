@@ -77,7 +77,7 @@ Application::Application(Options options, std::filesystem::path root)
     : options_(std::move(options)),
       root_(std::move(root)),
       layout_(Layout::load(root_ / "city" / "layout.json")),
-      registry_(Registry::load(root_, layout_)),
+      registry_(Registry::load(root_, layout_, options_.teams)),
       clock_(options_.startTime.value_or(CityClock::kDefaultStart), options_.timeScale) {
     for (const auto& id : options_.teams)
         if (!registry_.ensurePreview(id, root_, layout_)) log::error(id, "there is no folder teams/" + id);

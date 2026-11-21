@@ -594,8 +594,8 @@ Visual Studio they go in `"args"` in `launch.vs.json` (see
 ## Your team folder
 
 The staff publish the catalogue of topics ([docs/city.md](docs/city.md)).
-When your team has its topic, it is listed in `city/registry.json` with your
-GitHub logins, and the topic decides your plot. In a terminal in the project
+When your team has its topic, it is listed in `city/registry.json`, and the
+topic decides your plot. In a terminal in the project
 folder, create your folder from the template and run it:
 
 | | Windows | Linux and macOS |
@@ -631,6 +631,11 @@ Change them if your place has a name of its own:
 ```
 
 `title` (Persian) and `title_en` go on the sign at your plot's gate.
+
+Write each member's GitHub login in `"github"`. CI uses these logins to know
+which folder is yours, so your pull requests are rejected without them (the
+staff check that the logins are yours when they review your first pull
+request).
 
 Your folder looks like this; you change nothing outside it:
 
