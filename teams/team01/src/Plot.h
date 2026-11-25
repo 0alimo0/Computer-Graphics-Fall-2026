@@ -12,13 +12,14 @@ struct PlotLayout {
           observatoryX(-0.50f * halfWidth),
           observatoryZ(-0.36f * halfDepth),
           planetariumX(0.50f * halfWidth),
-          planetariumZ(-0.22f * halfDepth) {}
+          planetariumZ(observatoryZ) {}
 
-    static constexpr float observatoryHalfWidth = 11.0f;
-    static constexpr float observatoryHalfDepth = 8.5f;
+    static constexpr float observatoryRadius = 16.0f;
+    static constexpr float observatoryRoofY = 17.2f;
+    static constexpr float entranceDepth = 1.9f;
     static constexpr float planetariumHalfWidth = 14.0f;
     static constexpr float planetariumHalfDepth = 16.0f;
-    static constexpr float plazaZ = 19.0f;
+    static constexpr float junctionZ = 19.0f;
 
     float halfWidth;
     float halfDepth;
@@ -30,6 +31,7 @@ struct PlotLayout {
 };
 
 void drawSite(const PlotLayout& layout);
+void addSiteColliders(citylab::Context& ctx, const PlotLayout& layout);
 void drawObservatory();
 
 }  // namespace team01

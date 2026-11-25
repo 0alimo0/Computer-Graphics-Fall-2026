@@ -1,5 +1,6 @@
 #include "Plot.h"
 
+#include <array>
 #include <cmath>
 
 namespace team01 {
@@ -10,7 +11,45 @@ using namespace citylab;
 constexpr float grassY = 0.0f;
 constexpr float curbY = 0.025f;
 constexpr float pavingY = 0.04f;
-constexpr float plazaHalfDepth = 5.0f;
+constexpr float junctionHalfDepth = 2.1f;
+constexpr float wallHeight = 0.95f;
+constexpr float wallThickness = 0.50f;
+
+struct WallSection {
+    float left;
+    float right;
+    float back;
+    float front;
+};
+
+std::array<WallSection, 5> boundarySections(const PlotLayout& layout) {
+    constexpr float setback = 0.30f;
+    const float x = layout.halfWidth - setback;
+    const float z = layout.halfDepth - setback;
+    const float gate = layout.gateWidth * 0.5f + setback;
+    return {{{-x, x, -z, -z + wallThickness},
+             {-x, -x + wallThickness, -z + wallThickness, z - wallThickness},
+             {x - wallThickness, x, -z + wallThickness, z - wallThickness},
+             {-x, -gate, z - wallThickness, z},
+             {gate, x, z - wallThickness, z}}};
+}
+
+void drawBoundary(const PlotLayout& layout) {
+    for (const auto& section : boundarySections(layout)) {
+        const float width = section.right - section.left;
+        const float depth = section.front - section.back;
+        glPushMatrix();
+        glTranslatef((section.left + section.right) * 0.5f, 0.0f,
+                     (section.back + section.front) * 0.5f);
+        glTranslatef(0.0f, 0.40f, 0.0f);
+        glColor3f(0.62f, 0.66f, 0.69f);
+        shapes::box(width, 0.80f, depth);
+        glTranslatef(0.0f, 0.475f, 0.0f);
+        glColor3f(0.23f, 0.29f, 0.36f);
+        shapes::box(width, 0.15f, depth);
+        glPopMatrix();
+    }
+}
 
 void surface(float x, float y, float z, float width, float depth) {
     glPushMatrix();
@@ -55,32 +94,6 @@ void drawPathLight(float x, float z, float yaw) {
     glPopMatrix();
 }
 
-void drawCompassInlay() {
-    glPushMatrix();
-    glTranslatef(0.0f, pavingY + 0.01f, PlotLayout::plazaZ);
-    glColor3f(0.18f, 0.26f, 0.37f);
-    shapes::disk(2.65f);
-    glTranslatef(0.0f, 0.005f, 0.0f);
-    glColor3f(0.84f, 0.69f, 0.39f);
-    shapes::disk(2.48f);
-    glTranslatef(0.0f, 0.005f, 0.0f);
-    glColor3f(0.18f, 0.26f, 0.37f);
-    shapes::disk(2.37f);
-
-    glTranslatef(0.0f, 0.005f, 0.0f);
-    glColor3f(0.91f, 0.82f, 0.60f);
-    glNormal3f(0.0f, 1.0f, 0.0f);
-    for (int point = 0; point < 4; ++point) {
-        glBegin(GL_TRIANGLES);
-        glVertex3f(0.0f, 0.0f, 2.08f);
-        glVertex3f(0.35f, 0.0f, 0.0f);
-        glVertex3f(-0.35f, 0.0f, 0.0f);
-        glEnd();
-        glRotatef(90.0f, 0.0f, 1.0f, 0.0f);
-    }
-    glPopMatrix();
-}
-
 void markPlanetariumCorners(const PlotLayout& layout) {
     constexpr float lineWidth = 0.28f;
     constexpr float armLength = 2.5f;
@@ -97,6 +110,13 @@ void markPlanetariumCorners(const PlotLayout& layout) {
 
 }  // namespace
 
+void addSiteColliders(citylab::Context& ctx, const PlotLayout& layout) {
+    for (const auto& section : boundarySections(layout)) {
+        ctx.addCollider({section.left, 0.0f, section.back},
+                        {section.right, wallHeight, section.front});
+    }
+}
+
 void drawSite(const PlotLayout& layout) {
     constexpr int grassStripes = 16;
     const float stripeWidth = 2.0f * layout.halfWidth / grassStripes;
@@ -107,24 +127,25 @@ void drawSite(const PlotLayout& layout) {
                 grassY, 0.0f, stripeWidth, 2.0f * layout.halfDepth);
     }
 
-    constexpr float plazaFront = PlotLayout::plazaZ + plazaHalfDepth;
-    constexpr float plazaBack = PlotLayout::plazaZ - plazaHalfDepth;
-    const float entryHalfWidth = layout.gateWidth * 0.5f;
-    paving(-entryHalfWidth, entryHalfWidth, plazaFront, layout.halfDepth);
-    paving(layout.observatoryX - 4.5f, layout.planetariumX + 4.5f, plazaBack, plazaFront);
+    constexpr float junctionFront = PlotLayout::junctionZ + junctionHalfDepth;
+    constexpr float junctionBack = PlotLayout::junctionZ - junctionHalfDepth;
+    const float entryHalfWidth = layout.gateWidth * 0.24f;
+    paving(-entryHalfWidth, entryHalfWidth, junctionFront, layout.halfDepth);
+    constexpr float branchHalfWidth = 1.8f;
+    paving(layout.observatoryX - branchHalfWidth, layout.planetariumX + branchHalfWidth,
+           junctionBack, junctionFront);
 
-    constexpr float branchHalfWidth = 3.0f;
     paving(layout.observatoryX - branchHalfWidth, layout.observatoryX + branchHalfWidth,
-           layout.observatoryZ + PlotLayout::observatoryHalfDepth + 1.8f, plazaBack);
+           layout.observatoryZ + PlotLayout::observatoryRadius + PlotLayout::entranceDepth, junctionBack);
     paving(layout.planetariumX - branchHalfWidth, layout.planetariumX + branchHalfWidth,
-           layout.planetariumZ + PlotLayout::planetariumHalfDepth, plazaBack);
+           layout.planetariumZ + PlotLayout::planetariumHalfDepth, junctionBack);
 
-    drawCompassInlay();
     markPlanetariumCorners(layout);
+    drawBoundary(layout);
 
     for (const float side : {-1.0f, 1.0f}) {
         for (int i = 1; i <= 3; ++i) {
-            const float z = plazaFront + (layout.halfDepth - plazaFront) * (0.25f * i);
+            const float z = junctionFront + (layout.halfDepth - junctionFront) * (0.25f * i);
             drawPathLight(side * (entryHalfWidth + 0.7f), z, side * 90.0f);
         }
     }
